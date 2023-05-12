@@ -1,0 +1,63 @@
+<pcml version="4.0">
+    <struct name="inputS1">
+        <data name="input1" type="char" length="20" usage="input"/>
+    </struct>
+
+    <struct name="inputS2">
+        <data name="input2" type="char" length="5" usage="input"/>
+    </struct>
+
+    <struct name="inputS3">
+        <data name="input3" type="char" length="9" usage="input"/>
+    </struct>
+
+    <struct name="inputS4">
+        <data name="input4" type="char" length="9" usage="input"/>
+    </struct>
+
+    <struct name="inputS5">
+        <data name="input5" type="char" length="28" usage="input"/>
+    </struct>
+    <struct name="inputS6">
+          <data name="input6" type="char" length="10" usage="input"/>
+    </struct>
+
+      <struct name="inputS7">
+          <data name="input7" type="char" length="19" usage="input"/>
+      </struct>
+
+      <struct name="inputS8">
+          <data name="input8" type="char" length="4" usage="input"/>
+      </struct>
+      <struct name="inputS9">
+          <data name="input8" type="char" length="2" usage="input"/>
+      </struct>
+      <struct name="inputS10">
+          <data name="input8" type="char" length="9" usage="input"/>
+      </struct>
+
+
+    <struct name="outputS1">
+        <data name="output1" type="char" length="9" usage="output"/>
+    </struct>
+    <struct name="outputS2">
+        <data name="output2" type="char" length="256" usage="output"/>
+    </struct>
+
+    <program name="comodato" path="/QSYS.LIB/BCCS.LIB/CGabF.PGM">
+        <data name = "entrada" type="char" length="100" usage="input"/>
+        <data name="inputStruct1" type="struct" struct="inputS1" usage="input"/>
+        <data name="inputStruct2" type="struct" struct="inputS2" usage="input"/>
+        <data name="inputStruct3" type="struct" struct="inputS3" usage="input"/>
+        <data name="inputStruct4" type="struct" struct="inputS4" usage="input"/>
+        <data name="inputStruct5" type="struct" struct="inputS5" usage="input"/>
+        <data name="inputStruct6" type="struct" struct="inputS6" usage="input"/>
+        <data name="inputStruct7" type="struct" struct="inputS7" usage="input"/>
+        <data name="inputStruct8" type="struct" struct="inputS8" usage="input"/>
+        <data name="inputStruct7" type="struct" struct="inputS9" usage="input"/>
+        <data name="inputStruct8" type="struct" struct="inputS10" usage="input"/>
+        <data name="outputStruct1" type="struct" struct="outputS1" usage="output"/>
+        <data name="outputStruct2" type="struct" struct="outputS2" usage="output"/>
+    </program>
+
+</pcml>
