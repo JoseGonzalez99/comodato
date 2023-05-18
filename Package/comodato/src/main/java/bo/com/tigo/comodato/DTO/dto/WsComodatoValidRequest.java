@@ -27,7 +27,6 @@ public class WsComodatoValidRequest {
 
     @Valid
     @NotNull
-    @Size(min = 8, max = 8)
     @JsonProperty("characteristic")
     private List<Characteristic> characteristic;
 

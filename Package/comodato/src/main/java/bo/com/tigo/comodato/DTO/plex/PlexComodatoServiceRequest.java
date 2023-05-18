@@ -11,7 +11,7 @@ import java.util.List;
 public class PlexComodatoServiceRequest {
 
 
-    private List<Characteristic> characteristic;
+    private final List<Characteristic> characteristic;
 
     private final String numeroDocumento;
     private final String tipoDocumento;
@@ -20,14 +20,13 @@ public class PlexComodatoServiceRequest {
     private final String phoneNumber;
     private final String usuario;
     private final String identificadorIndividual;
-    private final String comprobanteCNV;
     private final String tipoComprobanteCNV;
     private final String serieComprobanteCNV;
     private final String nroComprobanteCNV;
-    private final String[] components;
 
     public PlexComodatoServiceRequest(WsComodatoValidRequest request) {
         this.characteristic = request.getCharacteristic();
+        /*
         this.numeroDocumento=getCharacteristicValue("numeroDocumento");
         this.tipoDocumento=getCharacteristicValue("tipoDocumento");
         this.clienteId=getCharacteristicValue("clienteId");
@@ -36,25 +35,24 @@ public class PlexComodatoServiceRequest {
         this.usuario=getCharacteristicValue("usuario");
         this.identificadorIndividual=getCharacteristicValue("identificadorIndividual");
         this.comprobanteCNV=getCharacteristicValue("comprobanteCNV");
+*/
+        this.numeroDocumento=request.getCharacteristic().get(0).getValue();
+        this.tipoDocumento=request.getCharacteristic().get(1).getValue();
+        this.clienteId=request.getCharacteristic().get(2).getValue();
+        this.contrato=request.getCharacteristic().get(3).getValue();
+        this.phoneNumber=request.getCharacteristic().get(4).getValue();
+        this.usuario=request.getCharacteristic().get(5).getValue();
+        this.identificadorIndividual=request.getCharacteristic().get(6).getValue();
+        String comprobanteCNV = request.getCharacteristic().get(7).getValue();
         //splitComprobanteCNV
-        this.components=this.comprobanteCNV.split("-");
-        this.tipoComprobanteCNV = this.components[0];
-        this.serieComprobanteCNV=this.components[1];
-        this.nroComprobanteCNV=this.components[2];
+        String[] components = comprobanteCNV.split("-");
+        this.tipoComprobanteCNV = components[0];
+        this.serieComprobanteCNV= components[1];
+        this.nroComprobanteCNV= components[2];
     }
 
     public static PlexComodatoServiceRequest from(WsComodatoValidRequest request){
         return new PlexComodatoServiceRequest(request);
-    }
-
-    //buscar valor por nombre por si la lista characteristic no este ordenada
-    public String getCharacteristicValue(String name) {
-        for (Characteristic characteristic : this.characteristic) {
-            if (name.equals(characteristic.getName())) {
-                return characteristic.getValue();
-            }
-        }
-        return "notMach " + name;
     }
 
     public ProgramCallDocument buildPcml(CurrentAs400Connection connection, String pcmlOperation) throws PcmlException {

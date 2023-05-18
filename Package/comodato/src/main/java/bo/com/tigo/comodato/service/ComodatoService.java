@@ -7,6 +7,7 @@ import bo.com.tigo.comodato.DTO.dto.commonClass.Characteristic;
 import bo.com.tigo.comodato.DTO.dto.commonClass.RelatedEntity;
 import bo.com.tigo.comodato.DTO.plex.PlexComodatoServiceRequest;
 import bo.com.tigo.comodato.DTO.plex.PlexComodatoServiceResponse;
+import bo.com.tigo.comodato.DTO.validations.WsRequestValidator;
 import bo.com.tigo.comodato.shared.util.CharacteristicFeatureException;
 import bo.com.tigo.comodato.shared.util.LogService;
 import bo.com.tigo.comodato.shared.util.SupportedException;
@@ -14,6 +15,7 @@ import bo.com.tigo.comodato.shared.util.connections.As400ConnectionService;
 import bo.com.tigo.comodato.shared.util.connections.CurrentAs400Connection;
 import bo.com.tigo.comodato.shared.util.constants.Constants;
 import bo.com.tigo.comodato.shared.util.constants.LogConstants;
+import bo.com.tigo.comodato.shared.util.constants.SuccessMessage;
 import com.ibm.as400.data.ProgramCallDocument;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.slf4j.Logger;
@@ -38,7 +40,6 @@ public class ComodatoService {
     private final LogService logService;
     private int statusCode;
     private final Logger log = LoggerFactory.getLogger(ComodatoService.class);
-    private final String uuid = String.format("%040d", new BigInteger(UUID.randomUUID().toString().replace("-", ""), 16));
     @Autowired
     public ComodatoService(AppConfig appConfiguration, BasicDataSource dataSource,As400ConnectionService as400connection) {
         this.appConfiguration =appConfiguration;
@@ -52,7 +53,7 @@ public class ComodatoService {
         Map<String, String> headers=requesthead.getTrailerFields();
         WsComodatoValidRequest requestDTO = (WsComodatoValidRequest) request;
         WsComodatoResponse responseDTO = null;
-
+        String uuid = String.format("%040d", new BigInteger(UUID.randomUUID().toString().replace("-", ""), 16));
         /*
          * Log del Request
          * */
@@ -63,13 +64,12 @@ public class ComodatoService {
         try {
             /* *
              * Validar todos los campos necesarios para la llamada PCML
-             * lanza una excepcion El campo " + fieldName + " no está presente en la lista de características
              * */
-            validateDataCharacterictic(requestDTO);
+            checkCharacteristicList(requestDTO);
             /* *
              * Validar el formato del campo comprobanteCNV (tipoComprobante-serieComprobante-nroComprobante)
             * */
-            validateComprobanteCNV(requestDTO);
+
             /* * *
              * Construccion de la clase PlexComodatoServiceRequest
              *  * */
@@ -78,10 +78,10 @@ public class ComodatoService {
              * Se adquiere conexion con la As400
              *  * */
 
-            log.info("Conectando al AS400.");
+            log.info("LOG_WS: Conectando al AS400.");
             CurrentAs400Connection connection = new CurrentAs400Connection(
                     as400ConnectionService.getConnection(),
-                    appConfiguration.dataSource().getConnection(),
+                    null,
                     as400ConnectionService);
 
             /*
@@ -108,31 +108,27 @@ public class ComodatoService {
                         appConfiguration.getAppConfiguration().getAs400User(),
                         uuid,
                         System.currentTimeMillis()));
-
+                statusCode=200;
                 if(plexResponse.getCode().equals("0")) {
-                    log.info("Llamada al programa pcml satisfactorio!!");
-                    responseDTO=buildResponse(plexResponse);
+                    log.info("LOG_WS: Llamada al programa pcml satisfactorio!!");
+                    responseDTO =buildGoodResponse();
                 }else{
-                    /*Error Type*/
-                    log.info("Llamada al programa pcml No satisfactorio!!");
-                    responseDTO = new WsComodatoResponse();
-                    responseDTO.setCodigo(plexResponse.getCode());
-                    //responseDTO.setErrorType(plexResponse.getMessage());
-                    responseDTO.setMensaje("Error recibido en la llamada del programa pcml");
+                    log.info("LOG_WS: Llamada al programa pcml No satisfactorio!!");
+                    responseDTO = buildErrorResponse(plexResponse);
                 }
             } else {
-                log.error("Error al ejecutar el objeto!!");
+                statusCode=500;
+                log.error("LOG_WS: Error al ejecutar el objeto!!");
                 responseDTO = new WsComodatoResponse();
-                responseDTO.setCodigo(Constants.STATUS_CODE_ERROR);
-                //responseDTO.setErrorType("Internal Server Error");
-                responseDTO.setMensaje("Llamada al programa pcml No satisfactorio!!");
+                responseDTO.setCodigo(Constants.ERROR);
+                responseDTO.setMensaje("No se pudo ejecutar el objeto RPG");
             }
 
             /*
              * Se cierra la conexion a la AS400 y BD
              * */
             connection.close();
-            System.out.println("Se finalizo la conexion correctamente");
+            log.info("Se finalizo la conexion correctamente");
         } catch (Exception | CharacteristicFeatureException e ) {
             log.info("A ocurrido un error de ejecucion!!");
             log.info("Exception:" + e);
@@ -140,19 +136,18 @@ public class ComodatoService {
             responseDTO = new WsComodatoResponse();
             if (e instanceof CharacteristicFeatureException) {
                 // manejar la excepción CharacteristicsException
-                responseDTO.setCodigo("400");
-                //responseDTO.setErrorType("BadRequest");
-                responseDTO.setMensaje(((CharacteristicFeatureException) e).getMessage());
+                statusCode=400;
+                responseDTO.setCodigo("ERROR");
+                responseDTO.setMensaje(e.getMessage());
             } else {
-                //responseDTO.setErrorType(Constants.ERROR);
                 responseDTO.setMensaje(SupportedException.getMessageFromException(e));
                 statusCode = SupportedException.getStatusFromMessage(responseDTO.getMensaje());
-                responseDTO.setCodigo(Integer.toString(statusCode));
+                responseDTO.setCodigo("ERROR");
             }
         }
 
         if (!responseDTO.getCodigo().equals("OK"))
-            return ResponseEntity.badRequest().body(responseDTO);
+            return ResponseEntity.status(statusCode).body(responseDTO);
 
         log.info(logService.getLogResponse(uuid,
                 appConfiguration.getAppConfiguration().getApiUrl(),
@@ -164,35 +159,22 @@ public class ComodatoService {
 
     }
 
-    private void validateDataCharacterictic(WsComodatoValidRequest requestDTO) throws Exception, CharacteristicFeatureException {
+    private void checkCharacteristicList(WsComodatoValidRequest requestDTO) throws Exception, CharacteristicFeatureException {
 
-        List<String> fieldNames = Arrays.asList("numeroDocumento", "tipoDocumento",
-                                                "clienteId","contrato","phoneNumber","usuario",
-                                                "identificadorIndividual","comprobanteCNV");
-        Characteristic.validate(requestDTO.getCharacteristic(), fieldNames); // Validas los campos
-    }
-    private void validateComprobanteCNV(WsComodatoValidRequest requestDTO) throws CharacteristicFeatureException {
-        String value = getCharacteristicValue("comprobanteCNV", requestDTO.getCharacteristic());
-        if (value.matches("[A-Z]{3}-[A-Z]{2}-[0-9]+")) {
+        requestDTO.setCharacteristic(WsRequestValidator.validateAndSortCharacteristicList(requestDTO.getCharacteristic()));
 
-        }else {
-            throw new CharacteristicFeatureException("El campo comprobanteCNV no tiene el formato esperado");
-        }
     }
 
-    private WsComodatoResponse buildResponse(PlexComodatoServiceResponse plexResponse) {
+    private WsComodatoResponse buildGoodResponse() {
         WsComodatoResponse responseDTO = new WsComodatoResponse();
-        responseDTO.setCodigo("OK");
+        responseDTO.setCodigo(Constants.OK);
+        responseDTO.setMensaje(SuccessMessage.SUCCESS_PROCESS.msg());
+        return responseDTO;
+    }
+    private WsComodatoResponse buildErrorResponse(PlexComodatoServiceResponse plexResponse) {
+        WsComodatoResponse responseDTO = new WsComodatoResponse();
+        responseDTO.setCodigo(Constants.ERROR);
         responseDTO.setMensaje(plexResponse.getMessage());
         return responseDTO;
     }
-    public String getCharacteristicValue(String name, List<Characteristic> characteristicList) {
-        for (Characteristic characteristic : characteristicList) {
-            if (name.equals(characteristic.getName())) {
-                return characteristic.getValue();
-            }
-        }
-        return "notMach " + name;
-    }
-
 }

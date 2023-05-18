@@ -3,7 +3,7 @@ package bo.com.tigo.comodato.shared.util.constants;
 public enum ErrorMessage {
 
 
-    ERRORCONNECTION("Error en la conexion"),
+    ERRORCONNECTION("No se pudo establecer conexion con el servidor As400"),
     ERRORCONVERSION("Error en la conversion del dato"),
     ERRORGENERAL("Error General"),
     ILLEGALARGUMENT("Error en los argumentos ingresados"),
