@@ -30,10 +30,10 @@
           <data name="input8" type="char" length="4" usage="input"/>
       </struct>
       <struct name="inputS9">
-          <data name="input8" type="char" length="2" usage="input"/>
+          <data name="input9" type="char" length="2" usage="input"/>
       </struct>
       <struct name="inputS10">
-          <data name="input8" type="char" length="9" usage="input"/>
+          <data name="input10" type="char" length="9" usage="input"/>
       </struct>
 
 
@@ -54,8 +54,8 @@
         <data name="inputStruct6" type="struct" struct="inputS6" usage="input"/>
         <data name="inputStruct7" type="struct" struct="inputS7" usage="input"/>
         <data name="inputStruct8" type="struct" struct="inputS8" usage="input"/>
-        <data name="inputStruct7" type="struct" struct="inputS9" usage="input"/>
-        <data name="inputStruct8" type="struct" struct="inputS10" usage="input"/>
+        <data name="inputStruct9" type="struct" struct="inputS9" usage="input"/>
+        <data name="inputStruct10" type="struct" struct="inputS10" usage="input"/>
         <data name="outputStruct1" type="struct" struct="outputS1" usage="output"/>
         <data name="outputStruct2" type="struct" struct="outputS2" usage="output"/>
     </program>

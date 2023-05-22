@@ -58,17 +58,17 @@ public class PlexComodatoServiceRequest {
     public ProgramCallDocument buildPcml(CurrentAs400Connection connection, String pcmlOperation) throws PcmlException {
 
         ProgramCallDocument pcmlObject = new ProgramCallDocument(connection.as400(),pcmlOperation);
-        pcmlObject.setStringValue("generateInvoice.entrada","");
-        pcmlObject.setStringValue("generateInvoice.inputStruct1.input1",this.numeroDocumento);
-        pcmlObject.setStringValue("generateInvoice.inputStruct2.input2",this.tipoDocumento);
-        pcmlObject.setStringValue("generateInvoice.inputStruct3.input3",this.clienteId);
-        pcmlObject.setStringValue("generateInvoice.inputStruct4.input4",this.contrato);
-        pcmlObject.setStringValue("generateInvoice.inputStruct5.input5",this.phoneNumber);
-        pcmlObject.setStringValue("generateInvoice.inputStruct6.input6",this.usuario);
-        pcmlObject.setStringValue("generateInvoice.inputStruct7.input7",this.identificadorIndividual);
-        pcmlObject.setStringValue("generateInvoice.inputStruct8.input8",this.tipoComprobanteCNV);
-        pcmlObject.setStringValue("generateInvoice.inputStruct8.input9",this.serieComprobanteCNV);
-        pcmlObject.setStringValue("generateInvoice.inputStruct8.input10",this.nroComprobanteCNV);
+        pcmlObject.setStringValue("comodato.entrada","");
+        pcmlObject.setStringValue("comodato.inputStruct1.input1",this.numeroDocumento);
+        pcmlObject.setStringValue("comodato.inputStruct2.input2",this.tipoDocumento);
+        pcmlObject.setStringValue("comodato.inputStruct3.input3",this.clienteId);
+        pcmlObject.setStringValue("comodato.inputStruct4.input4",this.contrato);
+        pcmlObject.setStringValue("comodato.inputStruct5.input5",this.phoneNumber);
+        pcmlObject.setStringValue("comodato.inputStruct6.input6",this.usuario);
+        pcmlObject.setStringValue("comodato.inputStruct7.input7",this.identificadorIndividual);
+        pcmlObject.setStringValue("comodato.inputStruct8.input8",this.tipoComprobanteCNV);
+        pcmlObject.setStringValue("comodato.inputStruct9.input9",this.serieComprobanteCNV);
+        pcmlObject.setStringValue("comodato.inputStruct10.input10",this.nroComprobanteCNV);
         return pcmlObject;
 
     }

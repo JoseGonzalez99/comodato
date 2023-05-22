@@ -26,8 +26,8 @@ public class PlexComodatoServiceResponse {
     public static PlexComodatoServiceResponse fromPcmlCall(ProgramCallDocument pcml) throws PcmlException {
 
         return new PlexComodatoServiceResponse(
-                pcml.getStringValue("generateInvoice.outputStruct1.output1"),
-                pcml.getStringValue("generateInvoice.outputStruct2.output2")
+                pcml.getStringValue("comodato.outputStruct1.output1"),
+                pcml.getStringValue("comodato.outputStruct2.output2")
         );
     }
 
