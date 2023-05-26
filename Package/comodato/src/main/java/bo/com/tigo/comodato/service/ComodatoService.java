@@ -61,6 +61,9 @@ public class ComodatoService {
                 headers.get(Constants.AUTHORIZATION),
                 request,
                 headers));
+
+        CurrentAs400Connection connection=null;
+
         try {
             /* *
              * Validar todos los campos necesarios para la llamada PCML
@@ -78,8 +81,8 @@ public class ComodatoService {
              * Se adquiere conexion con la As400
              *  * */
 
-            log.info("LOG_WS: Conectando al AS400.");
-            CurrentAs400Connection connection = new CurrentAs400Connection(
+            log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", Conectando al AS400:" + appConfiguration.getAppConfiguration().getAs400Ip()+"]");
+            connection = new CurrentAs400Connection(
                     as400ConnectionService.getConnection(),
                     null,
                     as400ConnectionService);
@@ -110,29 +113,24 @@ public class ComodatoService {
                         System.currentTimeMillis()));
                 statusCode=200;
                 if(plexResponse.getCode().equals("0")) {
-                    log.info("LOG_WS: Llamada al programa pcml satisfactorio!!");
+                    log.info("LOG_WS: [TRANSACTION_ID:"+uuid+ ", Llamada al programa pcml satisfactorio!!]");
                     responseDTO =buildGoodResponse();
                 }else{
-                    log.info("LOG_WS: Llamada al programa pcml No satisfactorio!!");
+                    log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", Llamada al programa pcml No satisfactorio!!]");
                     responseDTO = buildErrorResponse(plexResponse);
                 }
             } else {
                 statusCode=500;
-                log.error("LOG_WS: Error al ejecutar el objeto!!");
+                log.error("LOG_WS: [TRANSACTION_ID:"+uuid+", Error al ejecutar el objeto!!]");
                 responseDTO = new WsComodatoResponse();
                 responseDTO.setCodigo(Constants.ERROR);
                 responseDTO.setMensaje("No se pudo ejecutar el objeto RPG");
             }
 
-            /*
-             * Se cierra la conexion a la AS400 y BD
-             * */
-            connection.close();
-            log.info("Se finalizo la conexion correctamente");
         } catch (Exception | CharacteristicFeatureException e ) {
-            log.info("A ocurrido un error de ejecucion!!");
-            log.info("Exception:" + e);
-            log.error("TID = {} - Error al realizar la operacion: {}", uuid, e.getMessage());
+            log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", A ocurrido un error de ejecucion!!]");
+            log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", Exception:" + e+"]");
+            log.error("LOG_WS: [TRANSACTION_ID:"+uuid+", Error al realizar la operacion, "+ e.getMessage()+"]");
             responseDTO = new WsComodatoResponse();
             if (e instanceof CharacteristicFeatureException) {
                 // manejar la excepción CharacteristicsException
@@ -144,6 +142,9 @@ public class ComodatoService {
                 statusCode = SupportedException.getStatusFromMessage(responseDTO.getMensaje());
                 responseDTO.setCodigo("ERROR");
             }
+        }finally {
+            if (connection!=null)
+                connection.close();
         }
 
         if (!responseDTO.getCodigo().equals("OK"))
