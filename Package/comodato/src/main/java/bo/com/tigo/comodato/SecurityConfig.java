@@ -1,16 +1,17 @@
 package bo.com.tigo.comodato;
 
+import bo.com.tigo.comodato.shared.util.AESUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+public class SecurityConfig {
 
     @Value("${basic.auth.username}")
     private String username;
@@ -18,21 +19,37 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Value("${basic.auth.password}")
     private String password;
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Value("${basic.auth.encrypted}")
+    private boolean isEncrypted;
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf().disable()
                 .authorizeRequests()
                 .antMatchers("/v1").authenticated()
                 .anyRequest().permitAll()
                 .and()
                 .httpBasic();
+
+        return http.build();
     }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication()
-                .withUser(username)
-                .password("{noop}" + password)
-                .roles("USER");
+    @Autowired
+    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+        /**Se verifica si los datos estan encriptados**/
+        if (isEncrypted) {
+            String decryptedUsername = AESUtil.decrypt(username, "3C0mm3rc3_R3n0_*");
+            String decryptedPassword = AESUtil.decrypt(password, "3C0mm3rc3_R3n0_*");
+
+            auth.inMemoryAuthentication()
+                    .withUser(decryptedUsername)
+                    .password("{noop}" + decryptedPassword)
+                    .roles("USER");
+        } else {
+            auth.inMemoryAuthentication()
+                    .withUser(username)
+                    .password("{noop}" + password)
+                    .roles("USER");
+        }
     }
 }
