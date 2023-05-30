@@ -26,16 +26,6 @@ public class PlexComodatoServiceRequest {
 
     public PlexComodatoServiceRequest(WsComodatoValidRequest request) {
         this.characteristic = request.getCharacteristic();
-        /*
-        this.numeroDocumento=getCharacteristicValue("numeroDocumento");
-        this.tipoDocumento=getCharacteristicValue("tipoDocumento");
-        this.clienteId=getCharacteristicValue("clienteId");
-        this.contrato=getCharacteristicValue("contrato");
-        this.phoneNumber=getCharacteristicValue("phoneNumber");
-        this.usuario=getCharacteristicValue("usuario");
-        this.identificadorIndividual=getCharacteristicValue("identificadorIndividual");
-        this.comprobanteCNV=getCharacteristicValue("comprobanteCNV");
-*/
         this.numeroDocumento=request.getCharacteristic().get(0).getValue();
         this.tipoDocumento=request.getCharacteristic().get(1).getValue();
         this.clienteId=request.getCharacteristic().get(2).getValue();
