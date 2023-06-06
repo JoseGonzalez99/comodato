@@ -50,6 +50,8 @@ public class AppConfig {
         config.setAs400Message(env.getProperty("as400.db.driver"));
         config.setAs400ConnectionTimeout(Integer.valueOf(env.getProperty("as400.plex.connectionTimeout")));
         config.setAs400PretestConnection(Objects.equals(env.getProperty("as400.plex.pretestConnection"), "true"));
+        config.setRetryInterval(env.getProperty("service.retry.interval"));
+
         /**/
         config.setInvoise_completionMethod(env.getProperty("invoice.completionMethod"));
         config.setInvoise_isMandatory(Boolean.valueOf(env.getProperty("invoice.isMandatory")));

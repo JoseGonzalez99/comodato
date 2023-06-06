@@ -8,6 +8,7 @@ import org.apache.commons.dbcp.SQLNestedException;
 import javax.ws.rs.core.Response.Status;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.concurrent.TimeoutException;
 
 
 public enum SupportedException {
@@ -20,6 +21,7 @@ public enum SupportedException {
                     Status.SERVICE_UNAVAILABLE.getStatusCode()),// Este es para cuando no se puede conectar a la Base de datos
 
     ERRORCONVERSION(ClassCastException.class, ErrorMessage.ERRORCONVERSION.msg(), Status.FORBIDDEN.getStatusCode()),
+    TIMEOUT_EXCEPTION(TimeoutException.class, ErrorMessage.TIMEOUT.msg(),Status.REQUEST_TIMEOUT.getStatusCode()),
 
     ILLEGALARGUMENT(IllegalArgumentException.class,
                     ErrorMessage.ILLEGALARGUMENT.msg(),

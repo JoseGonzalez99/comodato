@@ -37,6 +37,8 @@ public class AppConfiguration {
     private String invoise_type;
     private String invoise_baseType;
 
+    private String retryInterval;
+
     public AppConfiguration() {
     }
 
@@ -202,6 +204,14 @@ public class AppConfiguration {
 
     public void setAs400PretestConnection(Boolean as400PretestConnection) {
         this.as400PretestConnection = as400PretestConnection;
+    }
+
+    public String getRetryInterval() {
+        return retryInterval;
+    }
+
+    public void setRetryInterval(String retryInterval) {
+        this.retryInterval = retryInterval;
     }
 
     @Override

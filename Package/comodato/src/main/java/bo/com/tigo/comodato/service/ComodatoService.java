@@ -62,7 +62,7 @@ public class ComodatoService {
                 request,
                 headers));
 
-        CurrentAs400Connection connection=null;
+        //CurrentAs400Connection connection=null;
 
         try {
             /* *
@@ -82,51 +82,52 @@ public class ComodatoService {
              *  * */
 
             log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", Conectando al AS400:" + appConfiguration.getAppConfiguration().getAs400Ip()+"]");
-            connection = new CurrentAs400Connection(
-                    as400ConnectionService.getConnection(),
+
+            try(CurrentAs400Connection connection = new CurrentAs400Connection(
+                    as400ConnectionService.getConnection(uuid),
                     null,
-                    as400ConnectionService);
-
-            /*
-             * Preparar y Ejecutar el objeto PCML
-             * */
-            String pcmlOperation = Constants.ENABLE_SERVICE_OPERATION;
-            final ProgramCallDocument pcml = plexRequest.buildPcml(connection, pcmlOperation);
-            /*
-             * Log del pcmlRequest
-             * */
-            log.info(logService.getLogPcmlRequest(plexRequest,
-                    LogConstants.INVOICESERVICE_PLEX,
-                    appConfiguration.getAppConfiguration().getAs400User(), uuid));
-
-
-            if (pcml.callProgram(pcmlOperation)) {
-                PlexComodatoServiceResponse plexResponse = PlexComodatoServiceResponse.fromPcmlCall(pcml);
+                    as400ConnectionService)){
                 /*
-                 * Log del pcmlResponse
+                 * Preparar y Ejecutar el objeto PCML
                  * */
-                log.info(logService.getLogPcmlResponse(
-                        plexResponse,
+                String pcmlOperation = Constants.ENABLE_SERVICE_OPERATION;
+                final ProgramCallDocument pcml = plexRequest.buildPcml(connection, pcmlOperation);
+                /*
+                 * Log del pcmlRequest
+                 * */
+                log.info(logService.getLogPcmlRequest(plexRequest,
                         LogConstants.INVOICESERVICE_PLEX,
-                        appConfiguration.getAppConfiguration().getAs400User(),
-                        uuid,
-                        System.currentTimeMillis()));
-                statusCode=200;
-                if(plexResponse.getCode().equals("0")) {
-                    log.info("LOG_WS: [TRANSACTION_ID:"+uuid+ ", Llamada al programa pcml satisfactorio!!]");
-                    responseDTO =buildGoodResponse();
-                }else{
-                    log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", Llamada al programa pcml No satisfactorio!!]");
-                    responseDTO = buildErrorResponse(plexResponse);
-                }
-            } else {
-                statusCode=500;
-                log.error("LOG_WS: [TRANSACTION_ID:"+uuid+", Error al ejecutar el objeto!!]");
-                responseDTO = new WsComodatoResponse();
-                responseDTO.setCodigo(Constants.ERROR);
-                responseDTO.setMensaje("No se pudo ejecutar el objeto RPG");
-            }
+                        appConfiguration.getAppConfiguration().getAs400User(), uuid));
 
+
+                if (pcml.callProgram(pcmlOperation)) {
+                    PlexComodatoServiceResponse plexResponse = PlexComodatoServiceResponse.fromPcmlCall(pcml);
+                    /*
+                     * Log del pcmlResponse
+                     * */
+                    log.info(logService.getLogPcmlResponse(
+                            plexResponse,
+                            LogConstants.INVOICESERVICE_PLEX,
+                            appConfiguration.getAppConfiguration().getAs400User(),
+                            uuid,
+                            System.currentTimeMillis()));
+                    statusCode=200;
+                    if(plexResponse.getCode().equals("0")) {
+                        log.info("LOG_WS: [TRANSACTION_ID:"+uuid+ ", Llamada al programa pcml satisfactorio!!]");
+                        responseDTO =buildGoodResponse();
+                    }else{
+                        log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", Llamada al programa pcml No satisfactorio!!]");
+                        responseDTO = buildErrorResponse(plexResponse);
+                    }
+                } else {
+                    statusCode=500;
+                    log.error("LOG_WS: [TRANSACTION_ID:"+uuid+", Error al ejecutar el objeto!!]");
+                    responseDTO = new WsComodatoResponse();
+                    responseDTO.setCodigo(Constants.ERROR);
+                    responseDTO.setMensaje("No se pudo ejecutar el objeto RPG");
+                }
+                connection.close();
+            }
         } catch (Exception | CharacteristicFeatureException e ) {
             log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", A ocurrido un error de ejecucion!!]");
             log.info("LOG_WS: [TRANSACTION_ID:"+uuid+", Exception:" + e+"]");
@@ -142,11 +143,7 @@ public class ComodatoService {
                 statusCode = SupportedException.getStatusFromMessage(responseDTO.getMensaje());
                 responseDTO.setCodigo("ERROR");
             }
-        }finally {
-            if (connection!=null)
-                connection.close();
         }
-
         if (!responseDTO.getCodigo().equals("OK"))
             return ResponseEntity.status(statusCode).body(responseDTO);
 

@@ -7,6 +7,8 @@ public enum ErrorMessage {
     ERRORCONVERSION("Error en la conversion del dato"),
     ERRORGENERAL("Error General"),
     ILLEGALARGUMENT("Error en los argumentos ingresados"),
+    TIMEOUT("No se pudo obtener una conexion el pool de conexiones"),
+
     ERRORSQL("Error en query sql"),
     ERRORCALLAS400("Error en la llamada al objeto del AS400"),
     ERRORCALLCOMMAND("Error en la ejecucion del comando AS400"),

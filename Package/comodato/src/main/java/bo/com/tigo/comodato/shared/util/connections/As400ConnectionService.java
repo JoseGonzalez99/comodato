@@ -7,122 +7,143 @@ import com.ibm.as400.access.ConnectionPoolException;
 import com.ibm.as400.access.SocketProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeoutException;
 
 /*
 * Esta clase sirve para crear la conexion, mas no es para usarlo directamente.
 * */
 @Service
 public class As400ConnectionService {
+    private static final Logger log = LogManager.getLogger(As400ConnectionService.class);
 
-    private static final AS400ConnectionPool pool = new AS400ConnectionPool();
+    private final AS400ConnectionPool pool;
 
     private final AppConfiguration conf;
     @Autowired
     public As400ConnectionService(AppConfiguration conf) {
         this.conf = conf;
+        this.pool = createConnectionPool();
     }
 
-    /**
-     * Asignar una conexion a traves del pool de conexiones de la AS400
-     *
-     * @return conexion a la AS400
-     * @throws ConnectionPoolException excepcion propagada por la libreria
-     */
+    private AS400ConnectionPool createConnectionPool() {
+        AS400ConnectionPool pool = new AS400ConnectionPool();
+        SocketProperties socketProperties = new SocketProperties();
+        socketProperties.setLoginTimeout(conf.getAs400ConnectionTimeout() * 1000);
+        socketProperties.setSoTimeout(conf.getAs400SoTimeout() * 1000);
+        pool.setMaxConnections(conf.getAs400MaxConnections());
+        pool.setMaxInactivity(conf.getAs400MaxInactivity() * 1000);
+        pool.setPretestConnections(conf.getAs400PretestConnection());
+        pool.setSocketProperties(socketProperties);
+        return pool;
+    }
 
-    public AS400 getConnection() throws ConnectionPoolException {
-        AS400 conn = null;
-        // Verificar direccion IP
+
+    private void validateAs400Configuration() {
         if (conf.getAs400Ip() == null) {
-            //log.error("Fallo al intentar conexion con la AS400. Valor nulo del atributo -bccs.ip-");
-        } else // Verificar Usuario
+            log.error("Fallo al intentar conexion con la AS400. Valor nulo del atributo -bccs.ip-");
+            throw new IllegalArgumentException("Dirección IP de AS400 no configurada");
+        }
         if (conf.getAs400User() == null) {
-            //log.error("Fallo al intentar conexion con la AS400. Valor nulo del atributo -bccs.user-");
-        } else // Verificar Password
+            log.error("Fallo al intentar conexion con la AS400. Valor nulo del atributo -bccs.user-");
+            throw new IllegalArgumentException("Usuario de AS400 no configurado");
+        }
         if (conf.getAs400Password() == null) {
-            //log.error("Fallo al intentar conexion con la AS400. Valor nulo o invalido del atributo -bccs.password-");
-        } else {
-           // log.debug("Obteniendo conexion a la AS400");
-            synchronized (pool) {
-                SocketProperties socketProperties = new SocketProperties();
-                socketProperties.setLoginTimeout(conf.getAs400ConnectionTimeout() * 1000);
-                socketProperties.setSoTimeout(conf.getAs400SoTimeout() * 1000);
-                pool.setMaxConnections(conf.getAs400MaxConnections());
-                pool.setMaxInactivity(conf.getAs400MaxInactivity() * 1000);
-                pool.setPretestConnections(conf.getAs400PretestConnection());
-                pool.setSocketProperties(socketProperties);
-                conn = pool.getConnection(conf.getAs400Ip(), conf.getAs400User(), conf.getAs400Password());
-                //log.debug(poolInfo());
-                //log.debug(socketInfo(conn.getSocketProperties()));
+            log.error("Fallo al intentar conexion con la AS400. Valor nulo o invalido del atributo -bccs.password-");
+            throw new IllegalArgumentException("Contraseña de AS400 no configurada o inválida");
+        }
+    }
+
+    public AS400 getConnection(String uuid) throws ConnectionPoolException, TimeoutException {
+        validateAs400Configuration();
+        AS400 conn = getConnectionWithRetry(uuid);
+        log.debug(poolInfo());
+        log.debug(socketInfo(conn.getSocketProperties()));
+        return conn;
+    }
+
+
+
+    private AS400 getConnectionWithRetry(String uuid) throws ConnectionPoolException, TimeoutException {
+        long retryInterval = ThreadLocalRandom.current().nextInt(0, 2001); // Intervalo de espera entre reintentos en milisegundos 0 a 2 segundos
+        log.debug("Hilo: " + uuid + " , retry interval"+retryInterval);
+        long startTime = System.currentTimeMillis();
+        long maxTime = startTime + Integer.parseInt(conf.getRetryInterval()); // Tiempo máximo permitido en milisegundos (en este caso, 5 segundos)
+        boolean connected = false;
+        AS400 conn = null;
+
+        while (!connected && System.currentTimeMillis() < maxTime) {
+            try {
+                synchronized (pool) {
+                    conn = pool.getConnection(conf.getAs400Ip(), conf.getAs400User(), conf.getAs400Password());
+                    connected = true; // La conexión se estableció correctamente
+                    log.debug("Hilo: " + uuid + " ,obtuvo conexión");
+                    printConnectionsStatus();
+                }
+            } catch (ConnectionPoolException e) {
+                if (e.getReturnCode() == ConnectionPoolException.MAX_CONNECTIONS_REACHED) {
+                    //log.warn(e.getMessage());
+                    // Código de excepción específico (3 en este caso)
+                    try {
+                        Thread.sleep(retryInterval); // Espera el intervalo de tiempo antes de reintentar
+                    } catch (InterruptedException ex) {
+                        log.debug("El hilo " + uuid + " se interrumpió");
+                        ex.printStackTrace();
+                    }
+                } else {
+                    log.error("Error en conexión " + e.getMessage());
+                    throw e;
+                }
             }
         }
 
-        if (conn == null)
-            throw new IllegalArgumentException("Parametro/s de conexion a la AS400 invalido/s");
-        else
-            return conn;
+        if (!connected) {
+            // Si no se pudo establecer la conexión después del tiempo máximo
+            throw new TimeoutException("TimeoutEx");
+        }
+
+        return conn;
     }
 
-    /**
-     * Retorna la conexion al pool de conexiones
-     *
-     * @param conn la instancia
-     */
+
     public void returnConnection(AS400 conn) {
         if (conn != null) {
-            //log.debug("Retornando conexion al pool --> " + conn.getSystemName());
+            log.debug("Retornando conexion al pool --> " + conn.getSystemName());
             synchronized (pool) {
-                //log.debug("Retornando conexion --> isConnected=" + conn.isConnected() + ", isConnectionAlive="
-                //  + conn.isConnectionAlive());
+                log.debug("Retornando conexion --> isConnected=" + conn.isConnected() + ", isConnectionAlive="
+                        + conn.isConnectionAlive());
                 if (conn.isConnected() && conn.isConnectionAlive())
                     pool.returnConnectionToPool(conn);
             }
         }
     }
 
-    /**
-     * Imprime informacion referente a las conexiones del pool y del socket
-     *
-     */
     public void printConnectionsStatus() {
         synchronized (pool) {
-            /*
             log.debug("Número de conexiones activas  --> "
                     + pool.getActiveConnectionCount(conf.getAs400Ip(), conf.getAs400User())
                     + ", Número de conexiones disponibles para reutilizar --> "
-                    + pool.getAvailableConnectionCount(conf.getAs400Ip(), conf.getAs400User()));*/
+                    + pool.getAvailableConnectionCount(conf.getAs400Ip(), conf.getAs400User()));
         }
     }
 
     public String socketInfo(SocketProperties socketProperties) {
-        final StringBuilder sb = new StringBuilder("SocketProperties {");
-        sb.append("loginTimeoutInMillis='").append(socketProperties.getLoginTimeout()).append(',');
-        sb.append("soTimeoutInMillis='").append(socketProperties.getSoTimeout()).append(',');
-        sb.append("receiveBufferSize='").append(socketProperties.getReceiveBufferSize()).append(',');
-        sb.append("sendBufferSize='").append(socketProperties.getSendBufferSize()).append(',');
-        sb.append("soLinger='").append(socketProperties.getSoLinger()).append(',');
-        sb.append('}');
-        return sb.toString();
+        return "SocketProperties {" + "loginTimeoutInMillis='" + socketProperties.getLoginTimeout() + ',' +
+                "soTimeoutInMillis='" + socketProperties.getSoTimeout() + ',' +
+                "receiveBufferSize='" + socketProperties.getReceiveBufferSize() + ',' +
+                "sendBufferSize='" + socketProperties.getSendBufferSize() + ',' +
+                "soLinger='" + socketProperties.getSoLinger() + ',' +
+                '}';
     }
 
     public String poolInfo() {
         synchronized (pool) {
-            final StringBuilder sb = new StringBuilder("PoolInfo {");
-            sb.append("maxConnections='").append(pool.getMaxConnections()).append(',');
-            sb.append("maxInactivityInMillis='").append(pool.getMaxInactivity()).append(',');
-            sb.append('}');
-            return sb.toString();
+            return "PoolInfo {" + "maxConnections='" + pool.getMaxConnections() + ',' +
+                    "maxInactivityInMillis='" + pool.getMaxInactivity() + ',' +
+                    '}';
         }
-    }
-
-
-    public synchronized void clearPoolConnections() {
-        pool.removeFromPool(conf.getAs400Ip(), conf.getAs400User());
-
-    }
-
-
-    public synchronized void closeConnection() {
-        pool.close();
     }
 }

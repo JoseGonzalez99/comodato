@@ -3,7 +3,7 @@ package bo.com.tigo.comodato.shared.util.constants;
 public class LogConstants {
 
     //LOG
-    public static final String WS_NAME = "ENABLE_SERVICE_BCCS";
+    public static final String WS_NAME = "AsociarComodato_BCCS";
     public static final String INVOICESERVICE_PLEX = "CGaaF.PGM";
 
 
