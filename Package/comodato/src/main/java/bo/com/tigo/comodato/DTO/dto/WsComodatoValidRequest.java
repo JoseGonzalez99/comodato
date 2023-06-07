@@ -83,4 +83,6 @@ public class WsComodatoValidRequest {
         this.relatedEntity = relatedEntity;
     }
 
+
+
 }

@@ -19,4 +19,6 @@ public class WsComodatoResponse {
     public void setMensaje(String mensaje) {
         this.mensaje = mensaje;
     }
+
+
 }

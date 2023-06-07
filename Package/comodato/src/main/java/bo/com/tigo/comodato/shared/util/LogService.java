@@ -19,8 +19,9 @@ import java.util.stream.Collectors;
 public class LogService {
     private static final Logger logger = LoggerFactory.getLogger(LogService.class);
 
-    public String getLogRequest(String uuid, Object authorization, Object body, Map<String, String> headers) throws IOException {
+    public String getLogRequest(String uuid,int sequence, Object authorization, Object body, Map<String, String> headers) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
+        String seq=String.valueOf(sequence);
         SimpleDateFormat dateTime = new SimpleDateFormat(LogConstants.LOG_DATE_FORMAT);
         String jsonBody;
         try {
@@ -35,6 +36,7 @@ public class LogService {
         logRequest = logRequest.replace(LogConstants.LOG_UUID, uuid != null ? uuid : "");
         logRequest = logRequest.replace(LogConstants.LOG_DATETIME, dateTime.format(new Date()));
         String user = getUser(authorization);
+        logRequest = logRequest.replace(LogConstants.LOG_SEC, seq);
         logRequest = logRequest.replace(LogConstants.LOG_USER, user != null ? user : "");
         logRequest = logRequest.replace(LogConstants.LOG_CHANNEL, LogConstants.WS_NAME);
         logRequest = logRequest.replace(LogConstants.LOG_REQUEST, request);
@@ -42,9 +44,10 @@ public class LogService {
         return logRequest;
     }
 
-    public String getLogResponse(String uuid, String url, String result, String code, String description,
+    public String getLogResponse(String uuid, int sequence ,String url, String result, String code, String description,
                                  Object response, long requestTime) {
 
+        String seq=String.valueOf(sequence);
         ObjectMapper mapper = new ObjectMapper();
         SimpleDateFormat dateTime = new SimpleDateFormat(LogConstants.LOG_DATE_FORMAT);
         String stringResponse;
@@ -59,6 +62,7 @@ public class LogService {
         logResponse = logResponse.replace(LogConstants.LOG_DATETIME, dateTime.format(new Date()));
         logResponse = logResponse.replace(LogConstants.LOG_URL, url != null ? url : "");
         logResponse = logResponse.replace(LogConstants.LOG_RESULT, result != null ? result : "");
+        logResponse = logResponse.replace(LogConstants.LOG_SEC, seq);
         logResponse = logResponse.replace(LogConstants.LOG_CODE, code != null ? code : "");
         logResponse = logResponse.replace(LogConstants.LOG_DESCRIPTION, description != null ? description : "");
         logResponse = logResponse.replace(LogConstants.LOG_RESPONSE, stringResponse != null ? stringResponse : "");
@@ -66,10 +70,47 @@ public class LogService {
         return logResponse;
     }
 
-    public String getLogPcmlRequest(Object pcml, String objectName, String user, String uuid) {
+    public String getLogStep(String uuid,int sequence,String message,String user,String ip,
+                             long requestTime) {
+
+        String seq=String.valueOf(sequence);
+
+        SimpleDateFormat dateTime = new SimpleDateFormat(LogConstants.LOG_DATE_FORMAT);
+        String logResponse = LogConstants.LOG_WS_STEP.replace(LogConstants.LOG_WS_NAME, LogConstants.WS_NAME);
+        logResponse = logResponse.replace(LogConstants.LOG_UUID, uuid != null ? uuid : "");
+        logResponse = logResponse.replace(LogConstants.LOG_DATETIME, dateTime.format(new Date()));
+        logResponse = logResponse.replace(LogConstants.LOG_DESCRIPTION, message != null ? message : "");
+        logResponse = logResponse.replace(LogConstants.LOG_IP, ip != null ? ip : "");
+        logResponse = logResponse.replace(LogConstants.LOG_USER, user != null ? user : "");
+        logResponse = logResponse.replace(LogConstants.LOG_SEC, seq);
+
+        logResponse = logResponse.replace(LogConstants.LOG_TIME, String.valueOf(System.currentTimeMillis() - requestTime));
+        return logResponse;
+    }
+
+    public String getLogException(String uuid,int sequence,String exClass,String exMessage,String user,String ip,
+                                  long requestTime) {
+
+        String seq=String.valueOf(sequence);
+
+        SimpleDateFormat dateTime = new SimpleDateFormat(LogConstants.LOG_DATE_FORMAT);
+        String logResponse = LogConstants.LOG_WS_EXCEPTION.replace(LogConstants.LOG_WS_NAME, LogConstants.WS_NAME);
+        logResponse = logResponse.replace(LogConstants.LOG_UUID, uuid != null ? uuid : "");
+        logResponse = logResponse.replace(LogConstants.LOG_DATETIME, dateTime.format(new Date()));
+        logResponse = logResponse.replace(LogConstants.LOG_EXNAME, exClass);
+        logResponse = logResponse.replace(LogConstants.LOG_EXMESSAGE, exMessage);
+        logResponse = logResponse.replace(LogConstants.LOG_IP, ip != null ? ip : "");
+        logResponse = logResponse.replace(LogConstants.LOG_USER, user != null ? user : "");
+        logResponse = logResponse.replace(LogConstants.LOG_SEC, seq);
+        logResponse = logResponse.replace(LogConstants.LOG_TIME, String.valueOf(System.currentTimeMillis() - requestTime));
+        return logResponse;
+    }
+
+    public String getLogPcmlRequest(Object pcml, String objectName, String user, String uuid,int sequence) {
         SimpleDateFormat dateTime = new SimpleDateFormat(LogConstants.LOG_DATE_FORMAT);
         ObjectMapper mapper = new ObjectMapper();
         String stringRequest;
+        String seq=String.valueOf(sequence);
         try {
             stringRequest = mapper.writeValueAsString(pcml);
         } catch (Exception e) {
@@ -80,13 +121,17 @@ public class LogService {
         logRequest = logRequest.replace(LogConstants.LOG_DATETIME, dateTime.format(new Date()));
         logRequest = logRequest.replace(LogConstants.LOG_USER, user);
         logRequest = logRequest.replace(LogConstants.LOG_REQUEST, stringRequest);
+        logRequest = logRequest.replace(LogConstants.LOG_SEC, seq);
+
         return logRequest;
     }
 
-    public String getLogPcmlResponse(Object pcmlResponse, String objectName, String url, String operationIdentifier, long requestTime) {
+    public String getLogPcmlResponse(int sequence,Object pcmlResponse, String objectName, String url, String uuid, long requestTime) {
         SimpleDateFormat dateTime = new SimpleDateFormat(LogConstants.LOG_DATE_FORMAT);
 
         ObjectMapper mapper = new ObjectMapper();
+        String seq=String.valueOf(sequence);
+
         String stringResponse;
         try {
             stringResponse = mapper.writeValueAsString(pcmlResponse);
@@ -94,11 +139,13 @@ public class LogService {
             stringResponse = pcmlResponse.toString();
         }
         String logResponse = LogConstants.LOG_WS_OBJECT_RESPONSE.replace(LogConstants.LOG_OBJECT_NAME, objectName);
-        logResponse = logResponse.replace(LogConstants.LOG_UUID, operationIdentifier != null ? operationIdentifier : "");
+        logResponse = logResponse.replace(LogConstants.LOG_UUID, uuid != null ? uuid : "");
         logResponse = logResponse.replace(LogConstants.LOG_DATETIME, dateTime.format(new Date()));
         logResponse = logResponse.replace(LogConstants.LOG_URL, url);
         logResponse = logResponse.replace(LogConstants.LOG_RESPONSE, stringResponse);
         logResponse = logResponse.replace(LogConstants.LOG_TIME, String.valueOf(System.currentTimeMillis() - requestTime));
+        logResponse = logResponse.replace(LogConstants.LOG_SEC, seq);
+
         return logResponse;
     }
 

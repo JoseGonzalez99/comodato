@@ -3,11 +3,6 @@ package bo.com.tigo.comodato.shared.util.constants;
 public class Constants {
 
     public static final String BO_ZONEID = "America/La_Paz";
-
-    //STATUS_CODE ERROR
-    public static final String STATUS_CODE_ERROR = "1";
-
-    public static  final String STATUS_CODE_ERROR2= "900";//ESTO ESTA SUJETO A CAMBIOS AL CODIGO CORRECTO.
     public static final String STATUS_CODE_SUCCESSFUL = "0";
     public static final String OK = "OK";
     public static final String ERROR = "ERROR";

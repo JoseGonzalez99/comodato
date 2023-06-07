@@ -94,7 +94,6 @@ public class As400ConnectionService {
                         ex.printStackTrace();
                     }
                 } else {
-                    log.error("Error en conexión " + e.getMessage());
                     throw e;
                 }
             }

@@ -62,4 +62,20 @@ public class PlexComodatoServiceRequest {
         return pcmlObject;
 
     }
+
+    @Override
+    public String toString() {
+        return "{ " +
+                ", input1.numeroDocumento= " + numeroDocumento +
+                ", input2.tipoDocumento= " + tipoDocumento +
+                ", input3.clienteId= " + clienteId +
+                ", input4.contrato= " + contrato +
+                ", input5.phoneNumber= " + phoneNumber +
+                ", input6.usuario= " + usuario +
+                ", input7.identificadorIndividual= " + identificadorIndividual +
+                ", input8.tipoComprobanteCNV= " + tipoComprobanteCNV +
+                ", input9.serieComprobanteCNV= " + serieComprobanteCNV +
+                ", input10.nroComprobanteCNV= " + nroComprobanteCNV +
+                "}";
+    }
 }
