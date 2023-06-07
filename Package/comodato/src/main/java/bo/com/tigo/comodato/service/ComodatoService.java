@@ -2,6 +2,7 @@ package bo.com.tigo.comodato.service;
 
 import bo.com.tigo.comodato.AppConfig;
 import bo.com.tigo.comodato.DTO.dto.WsComodatoResponse;
+import bo.com.tigo.comodato.DTO.dto.WsComodatoResponseErr;
 import bo.com.tigo.comodato.DTO.dto.WsComodatoValidRequest;
 import bo.com.tigo.comodato.DTO.dto.commonClass.Characteristic;
 import bo.com.tigo.comodato.DTO.dto.commonClass.RelatedEntity;
@@ -14,6 +15,7 @@ import bo.com.tigo.comodato.shared.util.SupportedException;
 import bo.com.tigo.comodato.shared.util.connections.As400ConnectionService;
 import bo.com.tigo.comodato.shared.util.connections.CurrentAs400Connection;
 import bo.com.tigo.comodato.shared.util.constants.Constants;
+import bo.com.tigo.comodato.shared.util.constants.ErrorMessage;
 import bo.com.tigo.comodato.shared.util.constants.LogConstants;
 import bo.com.tigo.comodato.shared.util.constants.SuccessMessage;
 import com.ibm.as400.data.ProgramCallDocument;
@@ -21,6 +23,7 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -52,6 +55,7 @@ public class ComodatoService {
         Map<String, String> headers=requesthead.getTrailerFields();
         WsComodatoValidRequest requestDTO = (WsComodatoValidRequest) request;
         WsComodatoResponse responseDTO = null;
+        WsComodatoResponseErr responseDTOErr = null;
         int sequence=1;
         String uuid = String.format("%040d", new BigInteger(UUID.randomUUID().toString().replace("-", ""), 16));
         /*
@@ -118,7 +122,7 @@ public class ComodatoService {
                                 appConfiguration.getAppConfiguration().getAs400Ip(),
                                 System.currentTimeMillis()));
                         sequence++;//6
-                        responseDTO =buildGoodResponse();
+                        responseDTO =buildGoodResponse(requestDTO);
                     }else{
                         log.info(logService.getLogStep(uuid,sequence,
                                 "El proceso no paso una validacion interna del objeto",
@@ -126,7 +130,7 @@ public class ComodatoService {
                                 appConfiguration.getAppConfiguration().getAs400Ip(),
                                 System.currentTimeMillis()));
                         sequence++;
-                        responseDTO = buildErrorResponse(plexResponse);
+                        responseDTOErr = buildErrorResponse(plexResponse);
                     }
                 } else {
                     statusCode=500;
@@ -145,26 +149,39 @@ public class ComodatoService {
             log.error(logService.getLogException(uuid,sequence,e.getClass().getName(),e.getMessage(),
                     appConfiguration.getAppConfiguration().getAs400User(),
                     appConfiguration.getAppConfiguration().getAs400Ip(),System.currentTimeMillis()));
-            responseDTO = new WsComodatoResponse();
+            responseDTOErr = new WsComodatoResponseErr();
             if (e instanceof CharacteristicFeatureException) {
                 // manejar la excepción CharacteristicsException
                 statusCode=400;
-                responseDTO.setCodigo("ERROR");
-                responseDTO.setMensaje(e.getMessage());
+                responseDTOErr.setErrorCode("400");
+                responseDTOErr.setErrorType("BadRequest");
+                responseDTOErr.setErrorDescription(e.getMessage());
+                responseDTOErr.setStatus("400");
+                responseDTOErr.setReferenceError("");
+                responseDTOErr.setSchemaLocation("");
+                responseDTOErr.setType("");
+                responseDTOErr.setBaseType("");
             } else {
-                responseDTO.setMensaje(SupportedException.getMessageFromException(e));
-                statusCode = SupportedException.getStatusFromMessage(responseDTO.getMensaje());
-                responseDTO.setCodigo("ERROR");
+                responseDTOErr.setErrorDescription(SupportedException.getMessageFromException(e));
+                statusCode = SupportedException.getStatusFromMessage(responseDTOErr.getErrorDescription());
+                responseDTOErr.setErrorCode(Integer.toString(statusCode));
+                HttpStatus httpstatus= HttpStatus.valueOf(statusCode);
+                responseDTOErr.setErrorType(httpstatus.getReasonPhrase());
+                responseDTOErr.setStatus(Integer.toString(statusCode));
+                responseDTOErr.setReferenceError("");
+                responseDTOErr.setSchemaLocation("");
+                responseDTOErr.setType("");
+                responseDTOErr.setBaseType("");
             }
         }
-        if (!responseDTO.getCodigo().equals("OK")){
+        if (responseDTOErr!= null){
             log.info(logService.getLogResponse(uuid,sequence,
                     appConfiguration.getAppConfiguration().getApiUrl(),
                     "ERROR",
-                    responseDTO.getCodigo(),
-                    responseDTO.getMensaje(),
-                    responseDTO, System.currentTimeMillis()));
-            return ResponseEntity.status(statusCode).body(responseDTO);
+                    responseDTOErr.getErrorCode(),
+                    responseDTOErr.getErrorDescription(),
+                    responseDTOErr, System.currentTimeMillis()));
+            return ResponseEntity.status(statusCode).body(responseDTOErr);
         }
         log.info(logService.getLogResponse(uuid,sequence,
                 appConfiguration.getAppConfiguration().getApiUrl(),
@@ -181,16 +198,30 @@ public class ComodatoService {
 
     }
 
-    private WsComodatoResponse buildGoodResponse() {
+    private WsComodatoResponse buildGoodResponse(WsComodatoValidRequest requestDTO) {
         WsComodatoResponse responseDTO = new WsComodatoResponse();
         responseDTO.setCodigo(Constants.OK);
         responseDTO.setMensaje(SuccessMessage.SUCCESS_PROCESS.msg());
+        responseDTO.setRequestedStartDate(requestDTO.getRequestedStartDate());
+        responseDTO.setMandatory(requestDTO.getMandatory());
+        responseDTO.setChannel(requestDTO.getChannel());
+        responseDTO.setCharacteristic(requestDTO.getCharacteristic());
+        responseDTO.setRelatedEntity(requestDTO.getRelatedEntity());
+        responseDTO.setType("TaskFlow");
+        responseDTO.setBaseType("TaskFlow");
+
         return responseDTO;
     }
-    private WsComodatoResponse buildErrorResponse(PlexComodatoServiceResponse plexResponse) {
-        WsComodatoResponse responseDTO = new WsComodatoResponse();
-        responseDTO.setCodigo(Constants.ERROR);
-        responseDTO.setMensaje(plexResponse.getMessage());
-        return responseDTO;
+    private WsComodatoResponseErr buildErrorResponse(PlexComodatoServiceResponse plexResponse) {
+        WsComodatoResponseErr responseDTOErr = new WsComodatoResponseErr();
+        responseDTOErr.setErrorCode(plexResponse.getCode());
+        responseDTOErr.setErrorType(ErrorMessage.NOT_PROCESSED.msg());
+        responseDTOErr.setErrorDescription(plexResponse.getMessage());
+        responseDTOErr.setStatus("204");
+        responseDTOErr.setReferenceError("");
+        responseDTOErr.setSchemaLocation("");
+        responseDTOErr.setType("");
+        responseDTOErr.setBaseType("");
+        return responseDTOErr;
     }
 }
